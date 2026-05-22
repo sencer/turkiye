@@ -1,0 +1,127 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "turkiye"
+version = "0.1.1"
+description = "Tools for plotting Türkiye administrative boundaries and resolving divisions"
+authors = [{ name = "Sencer S.", email = "nospam@gmail.com" }]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "geopandas>=1.0.0",
+  "matplotlib>=3.8.0",
+  "pandas>=2.0.0",
+  "plotly>=6.0.0",
+  "shapely>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "basedpyright>=1.31.7",
+  "pandas-stubs>=2.0.0",
+  "pytest>=7.0.0",
+  "pytest-cov>=4.0.0",
+  "ruff>=0.1.0",
+]
+notebook = [
+  "jupyter>=1.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["turkiye*"]
+
+[tool.setuptools.package-data]
+turkiye = ["py.typed", "data/maps/*"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+indent-width = 2
+fix = true
+show-fixes = true
+preview = true
+extend-exclude = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = [
+  "E",
+  "F",
+  "I",
+  "UP",
+  "B",
+  "BLE",
+  "C4",
+  "C90",
+  "T20",
+  "SIM",
+  "N",
+  "Q",
+  "RUF",
+  "ASYNC",
+  "S",
+  "PTH",
+  "ERA",
+  "PL",
+  "PERF",
+  "ANN",
+  "ARG",
+  "FBT",
+  "RET",
+  "TCH",
+]
+ignore = [
+  "E501",
+  "E111",
+  "E114",
+  "ANN401",
+  "FBT",
+  "PLR2004",
+  "SIM108",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 6
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/**/*.py" = [
+  "ANN",
+  "ARG",
+  "PLR2004",
+  "S101",
+  "TC003",
+  "TC002",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["turkiye"]
+combine-as-imports = true
+force-sort-within-sections = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.basedpyright]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+include = ["src", "tests"]
+exclude = [".venv", "**/.pytype", "**/.ipynb_checkpoints"]
+reportMissingImports = true
+reportMissingTypeStubs = true
+reportUnknownArgumentType = true
+reportUnknownVariableType = true
+reportUnknownMemberType = true
+reportAny = false
+reportExplicitAny = false
+reportIgnoreCommentWithoutRule = false
+
