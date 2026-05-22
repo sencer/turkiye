@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 import colorsys
 from dataclasses import dataclass
 import hashlib
@@ -20,6 +20,7 @@ from turkiye.boundaries import BoundaryLevel, load_boundaries, plot_boundaries
 
 HoverCallback = Callable[[pd.Series], str]
 Backend = Literal["plotly", "matplotlib"]
+PlotColor = str | pd.Series | pd.Index | Sequence[Any]
 
 DEFAULT_SIMPLIFY_TOLERANCE = 0.01
 _crosshair_css_installed = False
@@ -67,7 +68,7 @@ def plot(
 def plot_interactive(  # noqa: PLR0913
   data: pd.DataFrame,
   *,
-  color: str,
+  color: PlotColor,
   label: str | None = None,
   tooltip_fn: HoverCallback | None = None,
   year: int | None = None,
@@ -77,7 +78,7 @@ def plot_interactive(  # noqa: PLR0913
   **kwargs: Any,
 ) -> Any:
   _install_crosshair_css()
-  px = _plotly_express_module()
+  data, color, label = _with_plot_color(data, color=color, label=label)
   spec = _prepare_data(data, level=level, index_names=index_names)
   _require_column(spec.frame, color)
   map_level = _available_geometry_level(spec.level)
@@ -100,7 +101,7 @@ def plot_interactive(  # noqa: PLR0913
   height = plot_options.pop("height", 720)
   width = plot_options.pop("width", None)
   fig, categories = _choropleth_figure(
-    px,
+    _plotly_express_module(),
     gdf,
     plot_frame,
     _ChoroplethOptions(
@@ -132,7 +133,7 @@ def plot_interactive(  # noqa: PLR0913
 def plot_static(  # noqa: PLR0913, PLR0914
   data: pd.DataFrame,
   *,
-  color: str,
+  color: PlotColor,
   label: str | None = None,
   year: int | None = None,
   level: BoundaryLevel | Literal["auto"] = "auto",
@@ -141,14 +142,13 @@ def plot_static(  # noqa: PLR0913, PLR0914
   color_map: Mapping[str, str] | None = None,
   **kwargs: Any,
 ) -> Any:
+  data, color, label = _with_plot_color(data, color=color, label=label)
   spec = _prepare_data(data, level=level, index_names=index_names)
   _require_column(spec.frame, color)
   map_level = _available_geometry_level(spec.level)
   simplify_tolerance = kwargs.pop("simplify_tolerance", DEFAULT_SIMPLIFY_TOLERANCE)
   legend = kwargs.pop("legend", True)
   legend_kwargs = dict(kwargs.pop("legend_kwargs", {}) or {})
-  if label is not None:
-    legend_kwargs.setdefault("label", label)
   boundaries = plot_boundaries(
     map_level,
     simplified=True,
@@ -164,6 +164,8 @@ def plot_static(  # noqa: PLR0913, PLR0914
   ax.axis("off")
   boundaries.plot(ax=ax, color="#dddddd", edgecolor="white", linewidth=0.2)
   if _is_numeric_column(gdf, color):
+    if label is not None:
+      legend_kwargs.setdefault("label", label)
     numeric_legend_kwargs = _numeric_legend_kwargs(legend_kwargs)
     gdf.plot(
       ax=ax,
@@ -209,6 +211,61 @@ def plot_static(  # noqa: PLR0913, PLR0914
     boundary_plot(ax=ax, color="white", linewidth=0.55)
   _warn_if_fell_back(spec.level, map_level, year=year)
   return ax
+
+
+def _with_plot_color(
+  data: pd.DataFrame,
+  *,
+  color: PlotColor,
+  label: str | None,
+) -> tuple[pd.DataFrame, str, str | None]:
+  if isinstance(color, str):
+    return data, color, label
+
+  column = _temporary_color_column(data)
+  frame = data.copy()
+  frame[column] = _plot_color_series(data, color)
+  if label is None:
+    label = (
+      str(color.name)
+      if isinstance(color, pd.Series | pd.Index) and color.name
+      else "color"
+    )
+  return frame, column, label
+
+
+def _temporary_color_column(data: pd.DataFrame) -> str:
+  column = "__turkiye_plot_color__"
+  while column in data.columns:
+    column = f"_{column}"
+  return column
+
+
+def _plot_color_series(data: pd.DataFrame, color: PlotColor) -> pd.Series:
+  if isinstance(color, str):
+    return data[color]
+  if isinstance(color, pd.Series):
+    if color.index.equals(data.index):
+      return color
+    if (
+      color.index.is_unique
+      and data.index.is_unique
+      and data.index.isin(color.index).all()
+    ):
+      return color.reindex(data.index)
+    if len(color) == len(data):
+      return pd.Series(color.to_numpy(), index=data.index, name=color.name)
+    msg = "color Series must align with data.index or match data length"
+    raise ValueError(msg)
+  try:
+    series = pd.Series(color)
+  except (TypeError, ValueError) as error:
+    msg = "color must be a column name or a one-dimensional array-like value"
+    raise TypeError(msg) from error
+  if len(series) != len(data):
+    msg = f"color must have length {len(data)}, got {len(series)}"
+    raise ValueError(msg)
+  return pd.Series(series.to_numpy(), index=data.index, name=series.name)
 
 
 def _prepare_data(

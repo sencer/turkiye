@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "turkiye"
-version = "0.1.1"
+version = "0.1.2"
 description = "Tools for plotting Türkiye administrative boundaries and resolving divisions"
 authors = [{ name = "Sencer S.", email = "nospam@gmail.com" }]
 license = "MIT"
@@ -124,4 +124,3 @@ reportUnknownMemberType = true
 reportAny = false
 reportExplicitAny = false
 reportIgnoreCommentWithoutRule = false
-

@@ -95,6 +95,40 @@ def test_interactive_plot_matches_turkish_and_ascii_aliases() -> None:
   assert any(value in values for value in [2, 3, 4, 5])
 
 
+def test_interactive_plot_accepts_series_color_values() -> None:
+  data = pd.DataFrame(
+    {
+      "akp": [10, 4],
+      "chp": [3, 8],
+    },
+    index=pd.Index(["ANKARA", "ISTANBUL"], name="il"),
+  )
+
+  fig = plot_interactive(data, color=data.idxmax(axis=1))
+
+  assert fig.data[0].type == "choropleth"
+  assert {"Akp", "Chp"}.issubset({trace.name for trace in fig.data[1:]})
+
+
+def test_series_color_values_align_to_data_index() -> None:
+  data = pd.DataFrame(
+    {"value": [1, 2]},
+    index=pd.Index(["ANKARA", "ISTANBUL"], name="il"),
+  )
+  color = pd.Series(["chp", "akp"], index=["ISTANBUL", "ANKARA"])
+
+  fig = plot_interactive(data, color=color)
+
+  hover_texts: list[str] = []
+  for trace in fig.data:
+    custom_data = getattr(trace, "customdata", None)
+    if custom_data is None:
+      continue
+    hover_texts.extend(str(row[0]) for row in custom_data if row[0] is not None)
+  assert any("Ankara" in text and "akp" in text for text in hover_texts)
+  assert any("İstanbul" in text and "chp" in text for text in hover_texts)
+
+
 def test_static_plot_returns_axes_for_numeric_and_categorical() -> None:
   numeric = pd.DataFrame(
     {"value": [1, 2]}, index=pd.Index(["ANKARA", "ISTANBUL"], name="il")
@@ -111,6 +145,27 @@ def test_static_plot_returns_axes_for_numeric_and_categorical() -> None:
   assert isinstance(ax_numeric, matplotlib.axes.Axes)
   assert isinstance(ax_categorical, matplotlib.axes.Axes)
   assert not ax_numeric.axison
+
+
+def test_static_plot_accepts_array_like_color_values() -> None:
+  data = pd.DataFrame(
+    {"value": [1, 2]},
+    index=pd.Index(["ANKARA", "ISTANBUL"], name="il"),
+  )
+
+  ax = plot_static(data, color=data[["value"]].idxmax(axis=1))
+
+  assert isinstance(ax, matplotlib.axes.Axes)
+
+
+def test_plot_color_values_must_match_data_length() -> None:
+  data = pd.DataFrame(
+    {"value": [1, 2]},
+    index=pd.Index(["ANKARA", "ISTANBUL"], name="il"),
+  )
+
+  with pytest.raises(ValueError, match="color must have length 2"):
+    plot_static(data, color=["akp"])
 
 
 def test_static_plot_places_default_legends_outside_map() -> None:
