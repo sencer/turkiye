@@ -11,8 +11,31 @@ from turkiye import (
   plot,
   plot_interactive,
   plot_static,
+  project_geojson,
   register_geometry_source,
 )
+
+
+def test_project_geojson_projects_coordinates_and_preserves_properties() -> None:
+  geojson = {
+    "type": "FeatureCollection",
+    "features": [{
+      "type": "Feature",
+      "properties": {"id": "place"},
+      "geometry": {"type": "Point", "coordinates": [1, 1]},
+    }],
+  }
+
+  projected = project_geojson(geojson)
+
+  feature = projected["features"][0]
+  assert feature["properties"]["id"] == "place"
+  assert feature["geometry"]["coordinates"] == pytest.approx([111319.49, 111325.14])
+
+
+def test_project_geojson_requires_feature_collection() -> None:
+  with pytest.raises(ValueError, match="FeatureCollection"):
+    project_geojson({"type": "Point", "coordinates": [1, 1]})
 
 
 def test_default_boundaries_load_district_and_province_levels() -> None:

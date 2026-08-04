@@ -47,8 +47,6 @@ class _InteractiveMapStyle:
   categories: list[str]
   height: int
   width: int | None
-  lon_range: list[float]
-  lat_range: list[float]
 
 
 def plot(
@@ -89,7 +87,6 @@ def plot_interactive(  # noqa: PLR0913
   )
   gdf = _merge_map_data(boundaries, spec.frame, level=map_level)
   gdf = gdf.reset_index(drop=True)
-  lon_range, lat_range = _geo_ranges(gdf)
   plot_frame = _plot_frame(
     gdf,
     color=color,
@@ -119,8 +116,6 @@ def plot_interactive(  # noqa: PLR0913
       categories=categories,
       height=height,
       width=width,
-      lon_range=lon_range,
-      lat_range=lat_range,
     ),
   )
   if map_level == "ilce":
@@ -563,8 +558,7 @@ def _style_interactive_map(
   fig.update_geos(
     visible=False,
     projection={"type": "mercator"},
-    lonaxis={"range": style.lon_range},
-    lataxis={"range": style.lat_range},
+    fitbounds="locations",
   )
 
 
@@ -583,7 +577,7 @@ def _add_province_borders(fig: Any) -> None:
       lon=lon,
       lat=lat,
       mode="lines",
-      line={"color": "rgba(255,255,255,0.9)", "width": 0.55},
+      line={"color": "rgba(0,0,0,0.85)", "width": 0.75},
       hoverinfo="skip",
       showlegend=False,
     )
@@ -718,16 +712,6 @@ def _numeric_legend_kwargs(legend_kwargs: Mapping[str, Any]) -> dict[str, Any]:
   }
   options.update(dict(legend_kwargs))
   return options
-
-
-def _geo_ranges(gdf: gpd.GeoDataFrame) -> tuple[list[float], list[float]]:
-  min_lon, min_lat, max_lon, max_lat = gdf.total_bounds
-  lon_padding = (max_lon - min_lon) * 0.03
-  lat_padding = (max_lat - min_lat) * 0.05
-  return (
-    [float(min_lon - lon_padding), float(max_lon + lon_padding)],
-    [float(min_lat - lat_padding), float(max_lat + lat_padding)],
-  )
 
 
 def _geodataframe_json(gdf: gpd.GeoDataFrame) -> Any:

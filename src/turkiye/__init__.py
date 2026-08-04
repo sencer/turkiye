@@ -8,6 +8,7 @@ from turkiye.boundaries import (
 )
 from turkiye.history import Division, get_division
 from turkiye.plotting import plot, plot_interactive, plot_static
+from turkiye.projection import project_geojson
 
 __all__ = [
   "Division",
@@ -20,5 +21,6 @@ __all__ = [
   "plot",
   "plot_interactive",
   "plot_static",
+  "project_geojson",
   "register_geometry_source",
 ]
